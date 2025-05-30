@@ -39,8 +39,8 @@ def has_file_allowed_extension(filename: str, extensions: Union[str, Tuple[str, 
 
 class LocalImageDataset_LPM(data.Dataset):
     def __init__(self, 
-                pngtxt_dir="/datasets/6393/3658/datasets/sr_datasets/train_pasd_datasets/pngtxt_dir/", 
-                image_size=512,
+                # pngtxt_dir="/datasets/6393/3658/datasets/sr_datasets/train_pasd_datasets/pngtxt_dir/", 
+                image_size=256,
                 tokenizer=None,
                 accelerator=None,
                 control_type=None,
@@ -56,18 +56,18 @@ class LocalImageDataset_LPM(data.Dataset):
         self.resize_bak = resize_bak
         self.null_text_ratio = null_text_ratio
 
-        self.degradation = RealESRGAN_degradation('/home/quyunpeng/hart/dataloader/params_realesrgan.yml', device='cpu')
-        self.resize_scale = 1.25
-        center_crop = True
+        # self.degradation = RealESRGAN_degradation('/home/quyunpeng/hart/dataloader/params_realesrgan.yml', device='cpu')
+        # self.resize_scale = 1.25
+        # center_crop = True
 
         self.crop_preproc = transforms.Compose([
-            transforms.Resize(round(self.resize_scale*image_size), interpolation=InterpolationMode.LANCZOS),
-            transforms.CenterCrop(image_size) if center_crop else transforms.RandomCrop(image_size),
+            # transforms.Resize(round(self.resize_scale*image_size), interpolation=InterpolationMode.LANCZOS),
+            # transforms.CenterCrop(image_size) if center_crop else transforms.RandomCrop(image_size),
             transforms.RandomHorizontalFlip() if random_flip else transforms.Lambda(lambda x: x),
         ])
         self.neg_resize_preproc = transforms.Compose([
-            transforms.Resize(image_size, interpolation=InterpolationMode.LANCZOS),
-            transforms.CenterCrop(image_size) if center_crop else transforms.RandomCrop(image_size),
+            # transforms.Resize(image_size, interpolation=InterpolationMode.LANCZOS),
+            # transforms.CenterCrop(image_size) if center_crop else transforms.RandomCrop(image_size),
             transforms.RandomHorizontalFlip() if random_flip else transforms.Lambda(lambda x: x),
         ])
         self.img_preproc = transforms.Compose([
@@ -75,23 +75,28 @@ class LocalImageDataset_LPM(data.Dataset):
         ])
         self.toPIL = transforms.ToPILImage()
         
-        self.img_paths = []
-        self.neg_paths = []
-        pngtxt_dir = "trainset/"
-        data_folders = os.listdir(pngtxt_dir)
-        for data_folder in data_folders:
-            self.img_paths.extend(sorted(glob.glob(f'{pngtxt_dir}/{data_folder}/*.png'))[:])
-        pngtxt_dir = "trainset_neg/"
-        data_folders = os.listdir(pngtxt_dir)
-        for data_folder in data_folders:
-            self.neg_paths.extend(sorted(glob.glob(f'{pngtxt_dir}/{data_folder}/*.png'))[:])
+        self.img_paths_eo = []
+        self.img_paths_sar = []
+        # self.neg_paths = []
+        pngtxt_dir = "../../MAGIC/train/"
+        data_folders_eo = os.listdir(f"{pngtxt_dir}/EO/")
+        data_folders_sar = os.listdir(f"{pngtxt_dir}/SAR/")
+        for data_folder in data_folders_eo:
+            self.img_paths_eo.extend(sorted(glob.glob(f'{pngtxt_dir}/EO/{data_folder}/*.png'))[:])
+        for data_folder in data_folders_sar:
+            self.img_paths_sar.extend(sorted(glob.glob(f'{pngtxt_dir}/SAR/{data_folder}/*.png'))[:])
+        # pngtxt_dir = "trainset_neg/"
+        # data_folders = os.listdir(pngtxt_dir)
+        # for data_folder in data_folders:
+        #     self.neg_paths.extend(sorted(glob.glob(f'{pngtxt_dir}/{data_folder}/*.png'))[:])
 
 
-        self.labels = torch.zeros(len(self.img_paths))
-        self.neg_labels = torch.ones(len(self.neg_paths))
-        self.img_labels = torch.cat((self.labels, self.neg_labels), dim=0).tolist()
-        self.img_paths.extend(self.neg_paths)
-        print(len(self.img_paths))
+        # self.labels = torch.zeros(len(self.img_paths))
+        # self.neg_labels = torch.ones(len(self.neg_paths))
+        # self.img_labels = torch.cat((self.labels, self.neg_labels), dim=0).tolist()
+        # self.img_paths.extend(self.neg_paths)
+        print(f"EO Images: {len(self.img_paths_eo)}")
+        print(f"SAR Images: {len(self.img_paths_sar)}")
 
 
     def tokenize_caption(self, caption):
@@ -108,22 +113,27 @@ class LocalImageDataset_LPM(data.Dataset):
         example = dict()
 
         # load image
-        img_path = self.img_paths[index]
-        label_B = self.img_labels[index]
-        txt_path = img_path.replace(".png", ".txt")
-        image = Image.open(img_path).convert('RGB')
+        img_path_eo = self.img_paths_eo[index]
+        img_path_sar = self.img_paths_sar[index]
+        # label_B = self.img_labels[index]
+        # txt_path = img_path.replace(".png", ".txt")
+        image_eo = Image.open(img_path_eo).convert('RGB')
+        image_sar = Image.open(img_path_sar).convert('RGB')
 
-        if label_B == 0:
-            image = self.crop_preproc(image)
-        elif label_B==1:
-            image = self.neg_resize_preproc(image)
-        GT_image_t, LR_image_t = self.degradation.degrade_process(np.asarray(image)/255., resize_bak=self.resize_bak)
-        example["conditioning_pixel_values"] = LR_image_t.squeeze(0) * 2.0 - 1.0
-        example["pixel_values"] = GT_image_t.squeeze(0) * 2.0 - 1.0
-        example["label_B"] = int(label_B)
-        example['img_path'] = img_path
+        # if label_B == 0:
+        #     image = self.crop_preproc(image)
+        # elif label_B==1:
+        #     image = self.neg_resize_preproc(image)
+        image_eo = self.crop_preproc(image_eo)
+        image_sar = self.crop_preproc(image_sar)
+        # GT_image_t, LR_image_t = self.degradation.degrade_process(np.asarray(image)/255., resize_bak=self.resize_bak)
+        example["conditioning_pixel_values"] = image_eo.squeeze(0) * 2.0 - 1.0
+        example["pixel_values"] = image_sar.squeeze(0) * 2.0 - 1.0
+        # example["label_B"] = int(label_B)
+        example['img_path_eo'] = img_path_eo
+        example['img_path_sar'] = img_path_sar
 
         return example
 
     def __len__(self):
-        return len(self.img_paths)
+        return len(self.img_paths_eo)

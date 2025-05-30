@@ -102,7 +102,7 @@ class VARTrainer(object):
     
     def train_step(
         self, it: int, g_it: int, stepping: bool, metric_lg: MetricLogger,
-        inp_B3HW: FTen, lr_inp: Union[ITen, FTen], label_B,
+        inp_B3HW: FTen, lr_inp: Union[ITen, FTen], #label_B,
         text, prog_si: int, prog_wp_it: float, lr, wd,
     ) -> Tuple[Optional[Union[Ten, float]], Optional[float]]:
         # if progressive training
@@ -127,7 +127,8 @@ class VARTrainer(object):
 
         with self.var_opt.amp_ctx:
             self.var_wo_ddp.forward
-            logits_BLV, diff_loss, out_rgbs, mask_wo_prev_stages = self.var(x_BLCv_wo_first_l, label_B, lr_inp, text_hidden=None,
+            # TODO: Removed label_B argument
+            logits_BLV, diff_loss, out_rgbs, mask_wo_prev_stages = self.var(x_BLCv_wo_first_l, lr_inp, text_hidden=None,
                                 last_layer_gt = gt_idx_Bl[-1], last_layer_gt_discrete = gt_idx_Bl[-2], lr_inp_scale = None)
 
             

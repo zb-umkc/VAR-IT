@@ -17,8 +17,8 @@ def exists(x):
 
 class TestDataset(data.Dataset):
     def __init__(self, 
-                pngtxt_dir="/datasets_share_1/quyunpeng/trainset", 
-                image_size=512,
+                # pngtxt_dir="/datasets_share_1/quyunpeng/trainset", 
+                image_size=256,
                 tokenizer=None,
                 null_text_ratio=0.0,
                 original_image_ratio = 0.0,
@@ -35,10 +35,22 @@ class TestDataset(data.Dataset):
         self.img_preproc = transforms.Compose([
             transforms.ToTensor(),
         ])
-        self.img_paths = []
-        self.img_paths.extend(sorted(glob.glob(f'{pngtxt_dir}/HR/*'))[:])
+        # self.img_paths = []
+        # self.img_paths.extend(sorted(glob.glob(f'{pngtxt_dir}/HR/*'))[:])
 
-        print(len(self.img_paths))
+        self.img_paths_eo = []
+        self.img_paths_sar = []
+        pngtxt_dir = "../../MAGIC/val/"
+        data_folders_eo = os.listdir(f"{pngtxt_dir}/EO/")
+        data_folders_sar = os.listdir(f"{pngtxt_dir}/SAR/")
+        for data_folder in data_folders_eo:
+            self.img_paths_eo.extend(sorted(glob.glob(f'{pngtxt_dir}/EO/{data_folder}/*.png'))[:])
+        for data_folder in data_folders_sar:
+            self.img_paths_sar.extend(sorted(glob.glob(f'{pngtxt_dir}/SAR/{data_folder}/*.png'))[:])
+
+        # print(len(self.img_paths))
+        print(f"EO Images: {len(self.img_paths_eo)}")
+        print(f"SAR Images: {len(self.img_paths_sar)}")
 
 
     def tokenize_caption(self, caption):            
@@ -52,25 +64,38 @@ class TestDataset(data.Dataset):
         example = dict()
 
         # load image
-        img_path = self.img_paths[index]
-        GT_image = Image.open(img_path).convert('RGB')
-        scale = 1.0
-        resolution = round(512 * scale)
-        GT_image_t = self.img_preproc(GT_image.resize((resolution, resolution)))
-        example["pixel_values"] = GT_image_t.squeeze(0) * 2.0 - 1.0
-        example['path'] = img_path
+        # img_path = self.img_paths[index]
+        # GT_image = Image.open(img_path).convert('RGB')
+        # scale = 1.0
+        # resolution = round(512 * scale)
+        # GT_image_t = self.img_preproc(GT_image.resize((resolution, resolution)))
+        # example["pixel_values"] = GT_image_t.squeeze(0) * 2.0 - 1.0
+        # example['path'] = img_path
 
-        img_path = self.img_paths[index].replace("/HR/", "/LR/")
-        LR_image_t = Image.open(img_path).convert('RGB')
-        if LR_image_t.size[-1] != resolution:
-            example["conditioning_pixel_values"] = self.img_preproc(LR_image_t.resize((resolution, resolution))).squeeze(0) * 2.0 - 1.0
-        else:
-            example["conditioning_pixel_values"] = self.img_preproc(LR_image_t).squeeze(0) * 2.0 - 1.0
+        # img_path = self.img_paths[index].replace("/HR/", "/LR/")
+        # LR_image_t = Image.open(img_path).convert('RGB')
+        # if LR_image_t.size[-1] != resolution:
+        #     example["conditioning_pixel_values"] = self.img_preproc(LR_image_t.resize((resolution, resolution))).squeeze(0) * 2.0 - 1.0
+        # else:
+        #     example["conditioning_pixel_values"] = self.img_preproc(LR_image_t).squeeze(0) * 2.0 - 1.0
 
-        example["label_B"] = 0
-        fp.close()
+        # example["label_B"] = 0
+        # fp.close()
+
+        img_path_eo = self.img_paths_eo[index]
+        img_path_sar = self.img_paths_sar[index]
+        image_eo = Image.open(img_path_eo).convert('RGB')
+        image_sar = Image.open(img_path_sar).convert('RGB')
+
+        image_eo = self.crop_preproc(image_eo)
+        image_sar = self.crop_preproc(image_sar)
+        example["conditioning_pixel_values"] = image_eo.squeeze(0) * 2.0 - 1.0
+        example["pixel_values"] = image_sar.squeeze(0) * 2.0 - 1.0
+        example['img_path_eo'] = img_path_eo
+        example['img_path_sar'] = img_path_sar
     
         return example
 
+
     def __len__(self):
-        return len(self.img_paths)
+        return len(self.img_paths_eo)

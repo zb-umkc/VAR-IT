@@ -16,7 +16,8 @@ def build_dataset(
 ):
     # build augmentations
     train_set = LocalImageDataset_LPM(image_size=final_reso, tokenizer=tokenizer)
-    val_set = TestDataset(valid_data_path, image_size=final_reso, tokenizer=tokenizer, resize_bak=True)
+    val_set = TestDataset(image_size=final_reso, tokenizer=tokenizer, resize_bak=True)
+    #TODO: num_classes not needed
     num_classes = 1000
     print(f'[Dataset] {len(train_set)=}, {len(val_set)=}, {num_classes=}')    
     return num_classes, train_set, val_set
