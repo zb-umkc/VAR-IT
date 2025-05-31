@@ -128,8 +128,7 @@ class VAR_RoPE(nn.Module):
         self.word_embed = nn.Linear(self.Cvae, self.C)
         
         # 2. class embedding
-        #TODO: Not sure about this
-        self.label_B_flag = 0
+        self.label_B_flag = 1
         init_std = math.sqrt(1 / self.C / 3)
         self.num_classes = num_classes
         norm_layer = partial(nn.LayerNorm, eps=norm_eps)     
@@ -367,8 +366,7 @@ class VAR_RoPE(nn.Module):
         else:
             return self.vae_proxy[0].fhat_to_img(f_hat).add_(1).mul_(0.5)   # de-normalize, from [-1, 1] to [0, 1]
 
-    # TODO: Removed label_B argument
-    def forward(self, x_BLCv_wo_first_l: torch.Tensor, lr_inp, text_hidden,
+    def forward(self, x_BLCv_wo_first_l: torch.Tensor, label_B, lr_inp, text_hidden,
         last_layer_gt: torch.Tensor = None,
         last_layer_gt_discrete: torch.Tensor = None,
         lr_inp_scale = None,
@@ -398,9 +396,9 @@ class VAR_RoPE(nn.Module):
         with torch.cuda.amp.autocast(enabled=False):
             lr_inp, out_rgbs = self.con_embedding(lr_inp)
             sos = lr_inp.view(B, self.C, -1).permute(0,2,1)
-            # if self.label_B_flag:
-            #     cond_BD = self.class_emb(label_B)
-            # sos = torch.cat((sos, cond_BD.unsqueeze(1)), dim=1)
+            if self.label_B_flag:
+                cond_BD = self.class_emb(label_B)
+            sos = torch.cat((sos, cond_BD.unsqueeze(1)), dim=1)
             sos = sos.expand(B, self.first_l, -1) + self.pos_start.expand(B, self.first_l, -1)
             
             if self.prog_si == 0: x_BLC = sos

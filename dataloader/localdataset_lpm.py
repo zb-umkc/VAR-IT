@@ -90,10 +90,11 @@ class LocalImageDataset_LPM(data.Dataset):
         # for data_folder in data_folders:
         #     self.neg_paths.extend(sorted(glob.glob(f'{pngtxt_dir}/{data_folder}/*.png'))[:])
 
-
-        # self.labels = torch.zeros(len(self.img_paths))
-        # self.neg_labels = torch.ones(len(self.neg_paths))
-        # self.img_labels = torch.cat((self.labels, self.neg_labels), dim=0).tolist()
+        # Assign 1% negative labels (essentially ignored with large CFG scale)
+        num_pos_labels = round(len(self.img_paths_eo)*0.99)
+        self.pos_labels = torch.zeros(num_pos_labels)
+        self.neg_labels = torch.ones(len(self.img_paths_eo) - num_pos_labels)
+        self.img_labels = torch.cat((self.pos_labels, self.neg_labels), dim=0).tolist()
         # self.img_paths.extend(self.neg_paths)
         print(f"EO Images: {len(self.img_paths_eo)}")
         print(f"SAR Images: {len(self.img_paths_sar)}")
@@ -115,7 +116,7 @@ class LocalImageDataset_LPM(data.Dataset):
         # load image
         img_path_eo = self.img_paths_eo[index]
         img_path_sar = self.img_paths_sar[index]
-        # label_B = self.img_labels[index]
+        label_B = self.img_labels[index]
         # txt_path = img_path.replace(".png", ".txt")
         image_eo = Image.open(img_path_eo).convert('RGB')
         image_sar = Image.open(img_path_sar).convert('RGB')
@@ -129,7 +130,7 @@ class LocalImageDataset_LPM(data.Dataset):
         # GT_image_t, LR_image_t = self.degradation.degrade_process(np.asarray(image)/255., resize_bak=self.resize_bak)
         example["conditioning_pixel_values"] = image_eo.squeeze(0) * 2.0 - 1.0
         example["pixel_values"] = image_sar.squeeze(0) * 2.0 - 1.0
-        # example["label_B"] = int(label_B)
+        example["label_B"] = int(label_B)
         example['img_path_eo'] = img_path_eo
         example['img_path_sar'] = img_path_sar
 

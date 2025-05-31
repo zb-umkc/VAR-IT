@@ -91,6 +91,7 @@ class TestDataset(data.Dataset):
         image_sar = self.crop_preproc(image_sar)
         example["conditioning_pixel_values"] = image_eo.squeeze(0) * 2.0 - 1.0
         example["pixel_values"] = image_sar.squeeze(0) * 2.0 - 1.0
+        example["label_B"] = 0
         example['img_path_eo'] = img_path_eo
         example['img_path_sar'] = img_path_sar
     

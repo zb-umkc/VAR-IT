@@ -123,8 +123,7 @@ def build_everything(args: arg_util.Args):
     vae_local, var_wo_ddp = build_var(
         V=4096, Cvae=32, ch=160, share_quant_resi=4, controlnet_depth= args.depth,       # hard-coded VQVAE hyperparameters
         device=dist.get_device(), patch_nums=args.patch_nums, control_patch_nums = args.patch_nums,
-        #TODO: Should num_classes=1?
-        num_classes=1, depth=args.depth, shared_aln=args.saln, attn_l2_norm=args.anorm,
+        num_classes=1+1, depth=args.depth, shared_aln=args.saln, attn_l2_norm=args.anorm,
         flash_if_available=args.fuse, fused_if_available=args.fuse,
         init_adaln=args.aln, init_adaln_gamma=args.alng, init_head=args.hd, init_std=args.ini,
     )
@@ -239,7 +238,7 @@ def main_training():
         
             inp = batch["pixel_values"].to(args.device, non_blocking=True)
             lr_inp = batch["conditioning_pixel_values"].to(args.device, non_blocking=True)
-            # label_B = batch["label_B"].to(args.device, non_blocking=True)        
+            label_B = batch["label_B"].to(args.device, non_blocking=True)        
             args.cur_it = f'{it+1}/{iters_train}'
             wp_it = args.wp * iters_train
             min_tlr, max_tlr, min_twd, max_twd = lr_wd_annealing(args.sche, trainer.var_opt.optimizer, args.tlr, args.twd, args.twde, g_it, wp_it, max_it, wp0=args.wp0, wpe=args.wpe)
@@ -260,7 +259,7 @@ def main_training():
             
             grad_norm, scale_log2 = trainer.train_step(
                 it=it, g_it=g_it, stepping=stepping, metric_lg=me,
-                inp_B3HW=inp, lr_inp=lr_inp, #label_B=label_B,
+                inp_B3HW=inp, lr_inp=lr_inp, label_B=label_B,
                 text=None, prog_si=prog_si, prog_wp_it=args.pgwp * iters_train,
                 lr = args.cur_lr, wd =args.cur_wd 
             )
