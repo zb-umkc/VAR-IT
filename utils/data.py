@@ -15,11 +15,11 @@ def build_dataset(
     tokenizer, null_text_ratio, original_image_ratio,
 ):
     # build augmentations
-    train_set = LocalImageDataset_LPM(image_size=final_reso, tokenizer=tokenizer)
+    train_set = LocalImageDataset_LPM(image_size=final_reso, tokenizer=tokenizer, random_flip=False)
     val_set = TestDataset(image_size=final_reso, tokenizer=tokenizer, resize_bak=True)
     #TODO: num_classes not needed
     num_classes = 1000
-    print(f'[Dataset] {len(train_set)=}, {len(val_set)=}, {num_classes=}')    
+    print(f'[Dataset] len(train_set)={len(train_set)}, len(val_set)={len(val_set)}, num_classes={num_classes}')    
     return num_classes, train_set, val_set
 
 

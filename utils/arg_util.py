@@ -23,10 +23,10 @@ import dist
 
 
 class Args(Tap):
-    valid_data_path: str = 'testset/RealSR_CenterCrop'
-    vae_model_path: str = 'checkpoints/VQVAE.pth'
-    var_pretrain_path: str = "checkpoints/VARSR_C2I.pth"
-    var_test_path: str = "checkpoints/VARSR.pth"
+    valid_data_path: str = '' # Not used
+    vae_model_path: str = '/scratch/zb7df/varit/checkpoints/VQVAE.pth'
+    var_pretrain_path: str = "/scratch/zb7df/varit/checkpoints/VARSR.pth"
+    var_test_path: str = "results/VARIT/ar-ckpt-best.pth"
     wandb_flag: bool= 0
     exp_name: str = 'test'
     
@@ -106,7 +106,7 @@ class Args(Tap):
     finish_time: str = ''       # [automatically set; don't specify this]
     
     # environment
-    local_out_dir_path: str = "results/" + exp_name  # [automatically set; don't specify this]
+    local_out_dir_path: str = "/scratch/zb7df/varit/results/" + exp_name  # [automatically set; don't specify this]
     tb_log_dir_path: str = '...tb-...'  # [automatically set; don't specify this]
     log_txt_path: str = '...'           # [automatically set; don't specify this]
     last_ckpt_path: str = '...'         # [automatically set; don't specify this]
@@ -233,8 +233,8 @@ def init_dist_and_get_args():
         print(f'=========================== WARNING: UNEXPECTED EXTRA ARGS ===========================\n{args.extra_args}')
         print(f'=========================== WARNING: UNEXPECTED EXTRA ARGS ===========================')
         print(f'======================================================================================\n\n')
-    
-    args.local_out_dir_path = "results/" + args.exp_name
+
+    args.local_out_dir_path = "/scratch/zb7df/varit/results/" + args.exp_name
     # init torch distributed
     from utils import misc
     os.makedirs(args.local_out_dir_path, exist_ok=True)

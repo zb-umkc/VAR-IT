@@ -40,7 +40,7 @@ class TestDataset(data.Dataset):
 
         self.img_paths_eo = []
         self.img_paths_sar = []
-        pngtxt_dir = "../../MAGIC/val/"
+        pngtxt_dir = "../MAGIC/val"
         data_folders_eo = os.listdir(f"{pngtxt_dir}/EO/")
         data_folders_sar = os.listdir(f"{pngtxt_dir}/SAR/")
         for data_folder in data_folders_eo:
@@ -87,8 +87,8 @@ class TestDataset(data.Dataset):
         image_eo = Image.open(img_path_eo).convert('RGB')
         image_sar = Image.open(img_path_sar).convert('RGB')
 
-        image_eo = self.crop_preproc(image_eo)
-        image_sar = self.crop_preproc(image_sar)
+        image_eo = self.img_preproc(image_eo)
+        image_sar = self.img_preproc(image_sar)
         example["conditioning_pixel_values"] = image_eo.squeeze(0) * 2.0 - 1.0
         example["pixel_values"] = image_sar.squeeze(0) * 2.0 - 1.0
         example["label_B"] = 0

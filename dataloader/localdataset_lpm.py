@@ -64,21 +64,22 @@ class LocalImageDataset_LPM(data.Dataset):
             # transforms.Resize(round(self.resize_scale*image_size), interpolation=InterpolationMode.LANCZOS),
             # transforms.CenterCrop(image_size) if center_crop else transforms.RandomCrop(image_size),
             transforms.RandomHorizontalFlip() if random_flip else transforms.Lambda(lambda x: x),
-        ])
-        self.neg_resize_preproc = transforms.Compose([
-            # transforms.Resize(image_size, interpolation=InterpolationMode.LANCZOS),
-            # transforms.CenterCrop(image_size) if center_crop else transforms.RandomCrop(image_size),
-            transforms.RandomHorizontalFlip() if random_flip else transforms.Lambda(lambda x: x),
-        ])
-        self.img_preproc = transforms.Compose([
             transforms.ToTensor(),
         ])
-        self.toPIL = transforms.ToPILImage()
+        # self.neg_resize_preproc = transforms.Compose([
+            # transforms.Resize(image_size, interpolation=InterpolationMode.LANCZOS),
+            # transforms.CenterCrop(image_size) if center_crop else transforms.RandomCrop(image_size),
+        #     transforms.RandomHorizontalFlip() if random_flip else transforms.Lambda(lambda x: x),
+        # ])
+        # self.img_preproc = transforms.Compose([
+        #     transforms.ToTensor(),
+        # ])
+        # self.toPIL = transforms.ToPILImage()
         
         self.img_paths_eo = []
         self.img_paths_sar = []
         # self.neg_paths = []
-        pngtxt_dir = "../../MAGIC/train/"
+        pngtxt_dir = "../MAGIC/train"
         data_folders_eo = os.listdir(f"{pngtxt_dir}/EO/")
         data_folders_sar = os.listdir(f"{pngtxt_dir}/SAR/")
         for data_folder in data_folders_eo:

@@ -104,52 +104,51 @@ def main(args: arg_util.Args):
         ])
                 
 
-    image_names = []
-    folders = os.listdir("testset/")
-    val_set = []
-    for folder in folders:
-        #TODO: Will need to remove first argument (path set inside __init__)
-        dataset_val = TestDataset("testset/" + folder, image_size=args.data_load_reso, tokenizer=None, resize_bak=True)
-        ld_val = DataLoader(
-            dataset_val, num_workers=0, pin_memory=True,
-            batch_size=round(args.batch_size), sampler=EvalDistributedSampler(dataset_val, num_replicas=dist.get_world_size(), rank=dist.get_rank()),
-            shuffle=False, drop_last=False,
-        )
-        val_set.append(ld_val)
+    # image_names = []
+    # folders = os.listdir("testset/")
+    # val_set = []
+    # for folder in folders:
+    dataset_val = TestDataset(image_size=args.data_load_reso, tokenizer=None, resize_bak=True)
+    ld_val = DataLoader(
+        dataset_val, num_workers=0, pin_memory=True,
+        batch_size=round(args.batch_size), sampler=EvalDistributedSampler(dataset_val, num_replicas=dist.get_world_size(), rank=dist.get_rank()),
+        shuffle=False, drop_last=False,
+    )
+        # val_set.append(ld_val)
 
-    for ld_val in val_set:
-        for batch in ld_val:
-            lr_inp = batch["conditioning_pixel_values"].to(args.device, non_blocking=True)
-            label_B = batch["label_B"].to(args.device, non_blocking=True)
-            B = lr_inp.shape[0]
+    # for ld_val in val_set:
+    for batch in ld_val:
+        lr_inp = batch["conditioning_pixel_values"].to(args.device, non_blocking=True)
+        label_B = batch["label_B"].to(args.device, non_blocking=True)
+        B = lr_inp.shape[0]
 
-            with torch.inference_mode():
-                with torch.autocast('cuda', enabled=True, dtype=torch.float16, cache_enabled=True):    # using bfloat16 can be faster
-                    start_time = time.time()
-                    recon_B3HW = var.autoregressive_infer_cfg(B=B, cfg=6.0, top_k=1, top_p=0.75,
-                                                        text_hidden=None, lr_inp=lr_inp, negative_text=None, label_B=label_B, lr_inp_scale = None,
-                                                        more_smooth=False)
-                    recon_B3HW = numpy_to_pil(pt_to_numpy(recon_B3HW))
+        with torch.inference_mode():
+            with torch.autocast('cuda', enabled=True, dtype=torch.float16, cache_enabled=True):    # using bfloat16 can be faster
+                start_time = time.time()
+                recon_B3HW = var.autoregressive_infer_cfg(B=B, cfg=6.0, top_k=1, top_p=0.75,
+                                                    text_hidden=None, lr_inp=lr_inp, negative_text=None, label_B=label_B, lr_inp_scale = None,
+                                                    more_smooth=False)
+                recon_B3HW = numpy_to_pil(pt_to_numpy(recon_B3HW))
 
-            for idx in range(B):
-                image = recon_B3HW[idx]
-                if True: 
-                    validation_image = Image.open(batch['path'][idx].replace("/HR","/LR")).convert("RGB")
-                    validation_image = validation_image.resize((512, 512))
-                    image = adain_color_fix(image, validation_image)
+        for idx in range(B):
+            image = recon_B3HW[idx]
+            if True: 
+                validation_image = Image.open(batch['img_path_sar'][idx])#.convert("RGB")
+                validation_image = validation_image#.resize((512, 512))
+                image = adain_color_fix(image, validation_image)
 
-                folder_path, ext_path = os.path.split(batch['path'][idx])
-                output_name = folder_path.replace("/LR", "/VARPrediction/").replace("/HR", "/VARPrediction/")
-                os.makedirs(output_name, exist_ok=True)
-                image.save(os.path.join(output_name, ext_path))
+            folder_path, ext_path = os.path.split(batch['img_path_sar'][idx])
+            output_name = folder_path.replace("/SAR", "/VARPrediction/")#.replace("/HR", "/VARPrediction/")
+            os.makedirs(output_name, exist_ok=True)
+            image.save(os.path.join(output_name, ext_path))
     return True
 
 
 def metrics():
-    dir = "testset/"
+    dir = "../MAGIC/val/SAR"
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print(pyiqa.list_models())
-    folders = os.listdir("testset/")
+    folders = os.listdir(dir)
     img_preproc = transforms.Compose([
         transforms.ToTensor(),
     ])
@@ -164,7 +163,7 @@ def metrics():
     dists_iqa_metric = pyiqa.create_metric('dists', device=device)
     niqe_iqa_metric = pyiqa.create_metric('niqe', device=device)
 
-    for folder in folders:
+    for folder in ["chunk_1"]:#folders:
         print(folder)
         gt_img_paths = []
 
@@ -177,18 +176,18 @@ def metrics():
         musiq_iqa = []
         maniqa_iqa = []
         clip_iqa = []
-        gt_img_paths.extend(sorted(glob.glob(f'{dir}/{folder}/HR/*.JPEG'))[:])
-        gt_img_paths.extend(sorted(glob.glob(f'{dir}/{folder}/HR/*.png'))[:])
-        real_image_folder = dir + "/" + folder + "/HR"
-        generated_image_folder = real_image_folder.replace("/HR", "/VARPrediction")
+        # gt_img_paths.extend(sorted(glob.glob(f'{dir}/{folder}/*.JPEG'))[:])
+        gt_img_paths.extend(sorted(glob.glob(f'{dir}/{folder}/*.png'))[:])
+        real_image_folder = dir + "/" + folder
+        generated_image_folder = real_image_folder.replace("/SAR", "/VARPrediction")
 
-        for gt_img_path in gt_img_paths:
+        for gt_img_path in gt_img_paths[:10]:
             GT_image = img_preproc(Image.open(gt_img_path).convert('RGB'))
-            prediction_img_path = gt_img_path.replace("/HR/", "/VARPrediction/")
+            prediction_img_path = gt_img_path.replace("/SAR/", "/VARPrediction/")
             VARPrediction_img = img_preproc(Image.open(prediction_img_path).convert('RGB'))
 
-            img1 = rgb2ycbcr_pt(img2tensor(io.imread(gt_img_path)),  y_only=True).to(torch.float64)
-            img2 = rgb2ycbcr_pt(img2tensor(io.imread(prediction_img_path)),  y_only=True).to(torch.float64)
+            img1 = img2tensor(io.imread(gt_img_path)).to(torch.float64)
+            img2 = torch.mean(img2tensor(io.imread(prediction_img_path)).to(torch.float64), dim=1)
             img1 = torch.squeeze(img1)
             img2 = torch.squeeze(img2)
             
@@ -226,5 +225,5 @@ def metrics():
 
 if __name__ == "__main__":
     args: arg_util.Args = arg_util.init_dist_and_get_args()
-    main(args)
+    # main(args)
     results = metrics()

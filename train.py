@@ -264,7 +264,7 @@ def main_training():
                 lr = args.cur_lr, wd =args.cur_wd 
             )
             me.update(tlr=max_tlr)
-            if (g_it!=0 and g_it%1000==0) or ((it+1)%iters_train==0 and iters_train>1000):
+            if (g_it!=0 and g_it%1000==0) or ((it+1)%iters_train==0 and iters_train>100):
                 val_loss_mean, val_loss_tail, val_acc_mean, val_acc_tail, tot, cost = trainer.eval_ep(ld_val)
                 best_updated = best_val_loss_tail > val_loss_tail
                 best_val_loss_mean, best_val_loss_tail = min(best_val_loss_mean, val_loss_mean), min(best_val_loss_tail, val_loss_tail)
@@ -307,7 +307,7 @@ def main_training():
     print(f'  [*] [PT finished]  Total cost: {total_time},   Lm: {best_L_mean:.3f} ({L_mean}),   Lt: {best_L_tail:.3f} ({L_tail})')
     print('\n\n')
     
-    del stats
+    # del stats
     del iters_train, ld_train
     time.sleep(3), gc.collect(), torch.cuda.empty_cache(), time.sleep(3)
     
